@@ -2,6 +2,8 @@ import functools
 import os
 from datetime import datetime
 import itertools
+import logging
+from homework.log_const import fh1, fh2
 
 import pytest
 
@@ -39,6 +41,8 @@ def setup():
 
 def teardown():
     for file in [GOOD_LOG_FILE, ERROR_LOG_FILE, CSV_PATH]:
+        fh1.close()
+        fh2.close()
         os.remove(file)
 
 
