@@ -189,6 +189,10 @@ class Patient(object):
 
     def __del__(self):
         del self.log, self.ex_log
+        for fh in list(logging.getLogger('Exception_Logger').handlers)[::-1]:
+            fh.close()
+        for fh in list(logging.getLogger('Logger').handlers)[::-1]:
+            fh.close()
 
 
 class PatientCollection:
@@ -218,3 +222,7 @@ class PatientCollection:
 
     def __del__(self):
         del self.log, self.ex_log
+        for fh in list(logging.getLogger('Exception_Logger').handlers)[::-1]:
+            fh.close()
+        for fh in list(logging.getLogger('Logger').handlers)[::-1]:
+            fh.close()
