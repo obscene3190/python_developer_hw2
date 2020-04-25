@@ -41,8 +41,6 @@ def setup():
 
 def teardown():
     for file in [GOOD_LOG_FILE, ERROR_LOG_FILE, CSV_PATH]:
-        fh1.close()
-        fh2.close()
         os.remove(file)
 
 
