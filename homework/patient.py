@@ -54,7 +54,7 @@ class Patient(object):
         try:
             with open(path, 'a', newline='', encoding='utf-8') as csv_file:
                 writer = csv.writer(csv_file, delimiter=',')
-                patient = [self.__first_name, self.__last_name, self.birth_date_,
+                patient = [self.first_name, self.last_name, self.birth_date_,
                            self.phone_, self.document_type_, self.document_id_]
                 writer.writerow(patient)
         except IsADirectoryError:
@@ -64,7 +64,7 @@ class Patient(object):
             self.ex_log.error('%s %s:Saving was unsuccessful: PermissionError ' % (self.first_name, self.last_name))
             raise PermissionError('%s %s:Saving was unsuccessful: PermissionError' % (self.first_name, self.last_name))
         else:
-            self.log.info('Patient %s %s was successfully added to file' % (self.__first_name, self.__last_name))
+            self.log.info('Patient %s %s was successfully added to file' % (self.first_name, self.last_name))
 
     @property
     def first_name(self):
