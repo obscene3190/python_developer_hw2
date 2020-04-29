@@ -29,8 +29,8 @@ class Patient(object):
         self.log = logging.getLogger('Logger')
         try:
             logging.getLogger('Logger').disabled = True  # костыыыыыль
-            self.first_name_ = check_name(first_name)
-            self.last_name_ = check_name(second_name)
+            self._first_name_ = check_name(first_name)
+            self._last_name_ = check_name(second_name)
             self.birth_date = birth_date
             self.phone = phone
             self.document_type = document_type
@@ -54,8 +54,8 @@ class Patient(object):
         try:
             with open(path, 'a', newline='', encoding='utf-8') as csv_file:
                 writer = csv.writer(csv_file, delimiter=',')
-                patient = [self.first_name, self.last_name, self.birth_date_,
-                           self.phone_, self.document_type_, self.document_id_]
+                patient = [self.first_name, self.last_name, self.birth_date,
+                           self.phone, self.document_type, self.document_id]
                 writer.writerow(patient)
         except IsADirectoryError:
             self.ex_log.error('%s %s:Saving was unsuccessful: incorrect path' % (self.first_name, self.last_name))
@@ -68,7 +68,7 @@ class Patient(object):
 
     @property
     def first_name(self):
-        return self.first_name_
+        return self._first_name_
 
     @first_name.setter
     def first_name(self, value):
@@ -77,7 +77,7 @@ class Patient(object):
 
     @property
     def last_name(self):
-        return self.last_name_
+        return self._last_name_
 
     @last_name.setter
     def last_name(self, value):
