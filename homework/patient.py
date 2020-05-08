@@ -2,6 +2,7 @@ import logging
 import re
 import csv
 import homework.log_const
+import sqlite3
 
 
 def check_name(data):
@@ -34,10 +35,22 @@ def logging_decorator(func):
         except AttributeError as er_text:
             logging.getLogger('Exception_Logger').error(er_text)
             raise AttributeError(er_text)
-        finally:
-            pass
-        logging.getLogger('Logger').info('Function {0} was successfully done for patient {1} {2}'
-                                         .format(func.__name__, self.first_name, self.last_name))
+        except EOFError as er_text:
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise EOFError(er_text)
+        except sqlite3.ProgrammingError as er_text:
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise sqlite3.ProgrammingError(er_text)
+        except Exception:
+            er_text = 'Unexpected exception! :('
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise Exception(er_text)
+        if self.__class__.__name__ == 'Patient':
+            logging.getLogger('Logger').info('Function {0} was successfully done for patient {1} {2}'
+                                             .format(func.__name__, self.first_name, self.last_name))
+        else:
+            logging.getLogger('Logger').info('Function {0} was successfully done for PatientCollection class'
+                                             .format(func.__name__))
         return result
     return wrapper
 
@@ -64,17 +77,25 @@ class Patient(object):
         return Patient(*args)
 
     @logging_decorator
-    def save(self, path='PatientsCollection.csv'):
+    def save(self, path='PatientsCollection.db'):
         try:
-            with open(path, 'a', newline='', encoding='utf-8') as csv_file:
-                writer = csv.writer(csv_file, delimiter=',')
-                patient = [self.first_name, self.last_name, self.birth_date_,
-                           self.phone_, self.document_type_, self.document_id_]
-                writer.writerow(patient)
+            table = sqlite3.connect(path)
+            with table:
+                cursor = table.cursor()
+                cursor.executescript("""CREATE TABLE IF NOT EXISTS PatientsCollection
+                                  (first_name text, second_name text, birth_date text,
+                                   phone text, doc_type text, doc_id text);
+                               """)
+                patient = (self.first_name, self.last_name, self.birth_date_,
+                           self.phone_, self.document_type_, self.document_id_)
+                cursor.executemany("INSERT INTO PatientsCollection VALUES (?,?,?,?,?,?)", (patient,))
         except IsADirectoryError:
             raise IsADirectoryError('%s %s:Saving was unsuccessful: incorrect path' % (self.first_name, self.last_name))
         except PermissionError:
             raise PermissionError('%s %s:Saving was unsuccessful: PermissionError' % (self.first_name, self.last_name))
+        except sqlite3.ProgrammingError:
+            raise sqlite3.ProgrammingError('%s %s:Saving was unsuccessful: PermissionError'
+                                           % (self.first_name, self.last_name))
 
     @property
     def first_name(self):
@@ -179,31 +200,33 @@ class Patient(object):
 
 class PatientCollection:
     def __init__(self, path_to_file):
-        self.ex_log = logging.getLogger('Exception_Logger')
-        self.log = logging.getLogger('Logger')
-
         self.path_to_file = path_to_file
 
+    @logging_decorator
     def limit(self, value):
-        with open(self.path_to_file, 'rb', buffering=0) as file:
-            line = file.readline()
-            i = 0
-            while i < value and line:
-                line = re.split(',', line.decode('utf-8'))
-                yield Patient(*line)
-                line = file.readline()
-                i += 1
+        table = sqlite3.connect(self.path_to_file)
+        with table:
+            cursor = table.cursor()
+            cursor.execute("SELECT * FROM PatientsCollection")
+            i = value
+            while i > 0:
+                element = cursor.fetchone()
+                if not element:
+                    raise EOFError('You reached end of file: {0}'.format(self.path_to_file))
+                yield element
+                i -= 1
 
+    @logging_decorator
     def __iter__(self):
-        with open(self.path_to_file, 'rb', buffering=0) as file:
-            line = file.readline()
-            while line:
-                line = re.split(',', line.decode('utf-8'))
-                yield Patient(*line)
-                line = file.readline()
+        table = sqlite3.connect(self.path_to_file)
+        with table:
+            cursor = table.cursor()
+            cursor.execute("SELECT * FROM PatientsCollection")
+            element = cursor.fetchone()
+            while element:
+                yield element
+                element = cursor.fetchone()
 
     def __del__(self):
         homework.log_const.fh1.close()
         homework.log_const.fh2.close()
-
-
