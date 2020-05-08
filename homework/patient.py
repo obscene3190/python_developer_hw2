@@ -1,7 +1,6 @@
 import logging
 import re
-import csv
-import homework.log_const
+import log_const
 import sqlite3
 
 
@@ -79,6 +78,13 @@ class Patient(object):
     @logging_decorator
     def save(self, path='PatientsCollection.db'):
         try:
+            '''
+            with open(path, 'a', newline='', encoding='utf-8') as csv_file:
+                writer = csv.writer(csv_file, delimiter=',')
+                patient = [self.first_name, self.last_name, self.birth_date_,
+                           self.phone_, self.document_type_, self.document_id_]
+                writer.writerow(patient)
+            '''
             table = sqlite3.connect(path)
             with table:
                 cursor = table.cursor()
@@ -194,12 +200,12 @@ class Patient(object):
                              % (self.first_name, self.last_name))
 
     def __del__(self):
-        homework.log_const.fh1.close()
-        homework.log_const.fh2.close()
+        log_const.fh1.close()
+        log_const.fh2.close()
 
 
 class PatientCollection:
-    def __init__(self, path_to_file):
+    def __init__(self, path_to_file='PatientsCollection.db'):
         self.path_to_file = path_to_file
 
     @logging_decorator
@@ -228,5 +234,6 @@ class PatientCollection:
                 element = cursor.fetchone()
 
     def __del__(self):
-        homework.log_const.fh1.close()
-        homework.log_const.fh2.close()
+        log_const.fh1.close()
+        log_const.fh2.close()
+
