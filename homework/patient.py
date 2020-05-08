@@ -13,148 +13,164 @@ def check_name(data):
         raise ValueError('Incorrect name value: ' + str(data))
 
 
-def raise_error(ex_log, er_type, data, value):
-    text = "{0} didn't changed to {1} because of incorrect {2}".format(data, value, er_type)
-    if er_type == 'value':
-        ex_log.error(text)
-        raise ValueError(text)
-    elif er_type == 'type':
-        ex_log.error(text)
-        raise TypeError(text)
+def logging_decorator(func):
+    def wrapper(self, *args, **kwargs):
+        try:
+            result = func(self, *args, **kwargs)
+        except TypeError as er_text:
+            # er_text = 'Patient{0} {1}: incorrect type for function {2}'\
+            #    .format(self.first_name, self.last_name, func.__name__)
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise TypeError(er_text)
+        except ValueError as er_text:
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise ValueError(er_text)
+        except IsADirectoryError as er_text:
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise IsADirectoryError(er_text)
+        except PermissionError as er_text:
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise PermissionError(er_text)
+        except AttributeError as er_text:
+            logging.getLogger('Exception_Logger').error(er_text)
+            raise AttributeError(er_text)
+        finally:
+            pass
+        logging.getLogger('Logger').info('Function {0} was successfully done for patient {1} {2}'
+                                         .format(func.__name__, self.first_name, self.last_name))
+        return result
+    return wrapper
 
 
 class Patient(object):
+    @logging_decorator
     def __init__(self, first_name, second_name, birth_date, phone, document_type, document_id):
-        self.ex_log = logging.getLogger('Exception_Logger')
-        self.log = logging.getLogger('Logger')
         try:
             logging.getLogger('Logger').disabled = True  # костыыыыыль
-            self._first_name_ = check_name(first_name)
-            self._last_name_ = check_name(second_name)
+            self.first_name_ = check_name(first_name)
+            self.last_name_ = check_name(second_name)
             self.birth_date = birth_date
             self.phone = phone
             self.document_type = document_type
             self.document_id = document_id
             logging.getLogger('Logger').disabled = False
         except TypeError as error_text:
-            self.ex_log.error(error_text)
             raise TypeError(error_text)
         except ValueError as error_text:
-            self.ex_log.error(error_text)
             raise ValueError(error_text)
-        else:
-            self.log.info('New patient.py added: %s %s, %s, %s, %s %s' %
-                          (first_name, second_name, birth_date, phone, document_type, document_id))
 
     @staticmethod
     def create(*args):
         return Patient(*args)
 
+    @logging_decorator
     def save(self, path='PatientsCollection.csv'):
         try:
             with open(path, 'a', newline='', encoding='utf-8') as csv_file:
                 writer = csv.writer(csv_file, delimiter=',')
-                patient = [self.first_name, self.last_name, self.birth_date,
-                           self.phone, self.document_type, self.document_id]
+                patient = [self.first_name, self.last_name, self.birth_date_,
+                           self.phone_, self.document_type_, self.document_id_]
                 writer.writerow(patient)
         except IsADirectoryError:
-            self.ex_log.error('%s %s:Saving was unsuccessful: incorrect path' % (self.first_name, self.last_name))
             raise IsADirectoryError('%s %s:Saving was unsuccessful: incorrect path' % (self.first_name, self.last_name))
         except PermissionError:
-            self.ex_log.error('%s %s:Saving was unsuccessful: PermissionError ' % (self.first_name, self.last_name))
             raise PermissionError('%s %s:Saving was unsuccessful: PermissionError' % (self.first_name, self.last_name))
-        else:
-            self.log.info('Patient %s %s was successfully added to file' % (self.first_name, self.last_name))
 
     @property
     def first_name(self):
-        return self._first_name_
+        return self.first_name_
 
     @first_name.setter
+    @logging_decorator
     def first_name(self, value):
-        self.ex_log.error('Unable to rewrite FIRST_NAME')
-        raise AttributeError("You can't change this field")
+        raise AttributeError("%s %s: You can't change this field" % (self.first_name, self.last_name))
 
     @property
     def last_name(self):
-        return self._last_name_
+        return self.last_name_
 
     @last_name.setter
+    @logging_decorator
     def last_name(self, value):
-        self.ex_log.error('Unable to rewrite SECOND_NAME')
-        raise AttributeError("You can't change this field")
+        raise AttributeError("%s %s: You can't change this field" % (self.first_name, self.last_name))
 
     @property
     def birth_date(self):
         return self.birth_date_
 
     @birth_date.setter
+    @logging_decorator
     def birth_date(self, value):
         if not isinstance(value, str):
-            raise_error(self.ex_log, 'type', 'birth_date', value)
+            raise TypeError("%s %s: unable to change birth date because of incorrect TYPE"
+                            % (self.first_name, self.last_name))
         if re.match(r'\d{4}-\d{2}-\d{2}\b', value):
-            self.log.info('{0} {1}: {2} was successfully set to {3}'.format(self.first_name,
-                                                                            self.last_name, 'birth_date', value))
             self.birth_date_ = value
         else:
-            raise_error(self.ex_log, 'value', 'birth_date', value)
+            raise ValueError("%s %s: unable to change birth date because of incorrect VALUE"
+                             % (self.first_name, self.last_name))
 
     @property
     def phone(self):
         return self.phone_
 
     @phone.setter
+    @logging_decorator
     def phone(self, value):
         if not isinstance(value, str):
-            raise_error(self.ex_log, 'type', 'phone', value)
+            raise TypeError("%s %s: unable to change phone because of incorrect TYPE"
+                            % (self.first_name, self.last_name))
         if re.search(r'[^\d()\-+ ]', value) is None:
             data = re.findall(r'\d+', value)
             data = ''.join(data)
             if len(data) == 11:
-                self.log.info('{0} {1}: {2} was successfully set to {3}'.format(self.first_name,
-                                                                                self.last_name, 'phone', value))
                 self.phone_ = '8' + data[1:]
             else:
-                raise_error(self.ex_log, 'value', 'phone', value)
+                raise ValueError("%s %s: unable to change phone because of incorrect VALUE"
+                                 % (self.first_name, self.last_name))
         else:
-            raise_error(self.ex_log, 'value', 'phone', value)
+            raise ValueError("%s %s: unable to change phone because of incorrect VALUE"
+                             % (self.first_name, self.last_name))
 
     @property
     def document_type(self):
         return self.document_type_
 
     @document_type.setter
+    @logging_decorator
     def document_type(self, value):
         if not isinstance(value, str):
-            raise_error(self.ex_log, 'type', 'document_type', value)
+            raise TypeError("%s %s: unable to change doc. type because of incorrect TYPE"
+                            % (self.first_name, self.last_name))
         types = ('паспорт', 'заграничный паспорт', 'водительские права')
         if value in types:
-            self.log.info('{0} {1}: {2} was successfully set to {3}'.format(self.first_name,
-                                                                            self.last_name, 'document_type', value))
             self.document_type_ = value
         else:
-            raise_error(self.ex_log, 'value', 'document_type', value)
+            raise ValueError("%s %s: unable to change doc. type because of incorrect VALUE"
+                             % (self.first_name, self.last_name))
 
     @property
     def document_id(self):
         return self.document_id_
 
     @document_id.setter
+    @logging_decorator
     def document_id(self, value):
         if not isinstance(value, str):
-            raise_error(self.ex_log, 'type', 'document_id', value)
+            raise TypeError("%s %s: unable to change doc. id because of incorrect TYPE"
+                            % (self.first_name, self.last_name))
         if re.search(r'[^\d ]]', value) is None:
             value = re.findall(r'\d+', value)
             value = ''.join(value)
             if (len(value) == 10 and self.document_type_ != 'заграничный паспорт') or\
                     (len(value) == 9 and self.document_type_ == 'заграничный паспорт'):
-                self.log.info('{0} {1}: {2} was successfully set to {3}'.format(self.first_name,
-                                                                                self.last_name, 'document_id', value))
                 self.document_id_ = value
             else:
-                raise_error(self.ex_log, 'value', 'document_id', value)
+                raise ValueError("%s %s: unable to change doc. id because of incorrect VALUE"
+                                 % (self.first_name, self.last_name))
         else:
-            raise_error(self.ex_log, 'value', 'document_id', value)
+            raise ValueError("%s %s: unable to change doc. id because of incorrect VALUE"
+                             % (self.first_name, self.last_name))
 
     def __del__(self):
         homework.log_const.fh1.close()
@@ -189,4 +205,5 @@ class PatientCollection:
     def __del__(self):
         homework.log_const.fh1.close()
         homework.log_const.fh2.close()
+
 
